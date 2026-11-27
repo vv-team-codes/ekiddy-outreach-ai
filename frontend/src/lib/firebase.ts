@@ -39,29 +39,26 @@ export const auth: Auth = getAuth(firebaseApp);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-function isPopupBlockedError(err: unknown): boolean {
-  const code = (err as { code?: string } | null)?.code;
-  return (
-    code === 'auth/popup-blocked' ||
-    code === 'auth/popup-closed-by-user' ||
-    code === 'auth/cancelled-popup-request' ||
-    code === 'auth/operation-not-supported-in-this-environment'
-  );
-}
-
 /**
- * Google sign-in. Returns the credential on a successful popup sign-in, or
- * null when the popup was blocked and the browser was redirected to Google
- * instead — in that case the page reloads and the result is picked up by
- * getGoogleRedirectResult() (called from the login page on mount).
+ * Google sign-in, redirect-first.
+ *
+ * signInWithPopup failed on the live Pages site with auth/internal-error:
+ * the popup flow needs a popup window plus Firebase's hidden auth iframe,
+ * and it died before any network call in both the user's browser and the
+ * verification browser. A full-page redirect needs neither, so it is the
+ * primary flow now: the browser navigates to Google and back, and the
+ * result is picked up by getGoogleRedirectResult() (called from the login
+ * and register pages on mount). Popup is kept only as a fallback when
+ * redirect is not supported in this environment.
  */
 export async function signInWithGoogle(): Promise<UserCredential | null> {
   try {
-    return await signInWithPopup(auth, googleProvider);
+    await signInWithRedirect(auth, googleProvider);
+    return null;
   } catch (err) {
-    if (isPopupBlockedError(err)) {
-      await signInWithRedirect(auth, googleProvider);
-      return null;
+    const code = (err as { code?: string } | null)?.code;
+    if (code === 'auth/operation-not-supported-in-this-environment') {
+      return await signInWithPopup(auth, googleProvider);
     }
     throw err;
   }
@@ -90,7 +87,7 @@ export async function confirmReset(oobCode: string, newPassword: string): Promis
   await confirmPasswordReset(auth, oobCode, newPassword);
 }
 
-/** Checks a Firebase reset code and returns the email it was issued for. */
+/** Checks a Firebase reset code and returns the email it is issued for. */
 export async function verifyResetCode(oobCode: string): Promise<string> {
   return verifyPasswordResetCode(auth, oobCode);
 }
