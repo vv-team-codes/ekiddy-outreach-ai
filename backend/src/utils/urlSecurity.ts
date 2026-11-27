@@ -86,11 +86,11 @@ export async function validateSafePublicUrl(rawUrl: string): Promise<URL> {
   try {
     records = await dns.lookup(host, { all: true });
   } catch {
-    throw new BadRequestError(`Unable to resolve public DNS for host: ${host}`);
+    throw new BadRequestError('Unable to resolve public DNS for the requested host');
   }
 
   if (!records || records.length === 0) {
-    throw new BadRequestError(`No DNS records found for host: ${host}`);
+    throw new BadRequestError('No DNS records found for the requested host');
   }
 
   for (const record of records) {
@@ -153,7 +153,7 @@ export async function safeFetchPublicHtml(
         !contentType.includes('text/plain') &&
         !contentType.includes('application/xhtml+xml')
       ) {
-        throw new BadRequestError(`Unsupported content type for company research: ${contentType}`);
+        throw new BadRequestError('Unsupported content type for company research');
       }
 
       const reader = response.body?.getReader();

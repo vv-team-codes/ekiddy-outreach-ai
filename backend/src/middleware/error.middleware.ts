@@ -40,11 +40,13 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
   }
 
   if (err instanceof mongoose.Error.ValidationError) {
+    // Never reflect raw user input back in an error message: Mongoose
+    // validation messages can embed the offending value verbatim.
     res.status(400).json({
       success: false,
       error: {
         code: 'DB_VALIDATION_ERROR',
-        message: err.message
+        message: 'Database validation failed'
       }
     });
     return;

@@ -10,6 +10,7 @@ import { env } from '../config/env.js';
 import { Integration, Organization } from '../models/index.js';
 import { decryptObject } from '../utils/crypto.js';
 import { logger } from '../utils/logger.js';
+import { sanitizeAiValue } from '../utils/sanitize.js';
 
 interface AIProviderConfig {
   geminiKey: string;
@@ -151,11 +152,13 @@ async function runStructuredAI<T>(params: {
     try {
       if (provider === 'gemini') {
         const result = await callGeminiJson(cfg.geminiKey, cfg.model, params.prompt, params.schema);
-        return { result, aiMode: 'live', aiProvider: 'gemini', aiModel: cfg.model };
+        // AI output is untrusted text (it can echo markup from crawled
+        // pages): strip markup from every string before it is used.
+        return { result: sanitizeAiValue(result), aiMode: 'live', aiProvider: 'gemini', aiModel: cfg.model };
       }
       const result = await callOpenRouterJson(cfg.openRouterKey, cfg.model, params.prompt, params.schema);
       return {
-        result,
+        result: sanitizeAiValue(result),
         aiMode: 'live',
         aiProvider: 'openrouter',
         aiModel: cfg.model.includes('/') ? cfg.model : env.openRouterDefaultModel
@@ -166,7 +169,7 @@ async function runStructuredAI<T>(params: {
   }
 
   return {
-    result: params.demoFallback(),
+    result: sanitizeAiValue(params.demoFallback()),
     aiMode: 'demo',
     aiProvider: 'local-heuristic',
     aiModel: 'deterministic-v1'
