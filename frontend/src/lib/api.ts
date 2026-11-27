@@ -2,6 +2,11 @@ import { useAppStore } from '@/stores/appStore';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
+// True only when a backend base URL is configured (VITE_API_URL). GitHub
+// Pages is static-only, so with no backend configured no /api/* request
+// can succeed — callers must use the Firebase-only path instead.
+export const isBackendConfigured = Boolean(import.meta.env.VITE_API_URL);
+
 export class ApiClientError extends Error {
   public readonly status: number;
   public readonly code: string;
