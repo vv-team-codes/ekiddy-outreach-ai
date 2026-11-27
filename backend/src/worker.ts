@@ -7,7 +7,7 @@ async function startWorker() {
   await connectDatabase();
   registerAllQueueHandlers();
   await queueManager.init(true);
-  logger.info({ mode: queueManager.getMode() }, 'Ekiddy Outreach AI Background Worker started');
+  logger.info({ mode: queueManager.getMode() }, 'ekiddy Outreach AI Background Worker started');
 
   const shutdown = async () => {
     logger.info('Shutting down background worker...');

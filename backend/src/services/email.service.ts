@@ -157,7 +157,7 @@ export async function dispatchOutboundEmail(params: {
   }
 
   let fromEmail = env.emailFromDefault;
-  let fromName = 'Ekiddy Outreach AI';
+  let fromName = 'ekiddy Outreach AI';
   let provider: 'sandbox' | 'smtp' | 'resend' = 'sandbox';
   let config: Record<string, unknown> = {};
 

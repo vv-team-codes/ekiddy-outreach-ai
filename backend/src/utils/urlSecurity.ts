@@ -132,7 +132,7 @@ export async function safeFetchPublicHtml(
         redirect: 'manual',
         signal: controller.signal,
         headers: {
-          'User-Agent': 'EkiddyOutreachResearchBot/1.0 (+https://app.ekiddy.com)',
+          'User-Agent': 'ekiddyOutreachResearchBot/1.0 (+https://app.ekiddy.com)',
           Accept: 'text/html,application/xhtml+xml,text/plain;q=0.9'
         }
       });

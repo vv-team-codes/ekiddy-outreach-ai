@@ -12,7 +12,7 @@ async function bootstrap() {
 
   const app = createApp();
   const server = app.listen(env.port, () => {
-    logger.info({ port: env.port, env: env.nodeEnv }, 'Ekiddy Outreach AI API listening');
+    logger.info({ port: env.port, env: env.nodeEnv }, 'ekiddy Outreach AI API listening');
   });
 
   const shutdown = async () => {

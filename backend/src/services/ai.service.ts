@@ -102,7 +102,7 @@ async function callOpenRouterJson<T>(
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
       'HTTP-Referer': env.appUrl,
-      'X-Title': 'Ekiddy Outreach AI'
+      'X-Title': 'ekiddy Outreach AI'
     },
     body: JSON.stringify({
       model: effectiveModel,
@@ -467,7 +467,7 @@ Website: ${params.companyWebsite || 'Not provided'}
 Research Context: ${params.companyInformation || 'None provided'}
 Product/Service Offered: ${params.productOrService}
 Campaign Objective: ${params.campaignObjective}
-Sender: ${params.senderName || 'Ekiddy Team'}
+Sender: ${params.senderName || 'ekiddy Team'}
 Variation Hint: ${params.variationSeed || 1}`;
 
   const { result, aiMode, aiProvider, aiModel } = await runStructuredAI({

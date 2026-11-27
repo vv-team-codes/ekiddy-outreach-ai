@@ -57,7 +57,7 @@ export async function recordInboundReply(params: {
     incomingText: params.bodyText,
     contactName: contact?.fullName || normalizedFrom,
     companyName: contact?.companyName,
-    senderName: 'Ekiddy Team'
+    senderName: 'ekiddy Team'
   });
 
   const folder = mapClassificationToFolder(classificationResult.result.classification);

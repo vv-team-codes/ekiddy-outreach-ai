@@ -10,7 +10,7 @@ import { registerAllQueueHandlers } from '../src/workers/registerWorkers.js';
 
 const app = createApp();
 
-describe('Ekiddy Outreach AI — Full Platform Integration & Security Suite (18 Core Scenarios)', () => {
+describe('ekiddy Outreach AI — Full Platform Integration & Security Suite (18 Core Scenarios)', () => {
   let orgAToken = '';
   let orgAId = '';
   let orgABookingSlug = '';
@@ -127,7 +127,7 @@ describe('Ekiddy Outreach AI — Full Platform Integration & Security Suite (18 
         prospectDesignation: 'VP Sales',
         companyName: 'Acme Corp',
         campaignObjective: 'Schedule demo',
-        productOrService: 'Ekiddy AI',
+        productOrService: 'ekiddy AI',
         tone: 'Professional'
       });
     expect(first.status).toBe(200);
@@ -147,7 +147,7 @@ describe('Ekiddy Outreach AI — Full Platform Integration & Security Suite (18 
         prospectDesignation: 'VP Sales',
         companyName: 'Acme Corp',
         campaignObjective: 'Schedule demo',
-        productOrService: 'Ekiddy AI',
+        productOrService: 'ekiddy AI',
         tone: 'Professional'
       });
     expect(second.status).toBe(200);
@@ -275,7 +275,7 @@ describe('Ekiddy Outreach AI — Full Platform Integration & Security Suite (18 
         prospectDesignation: 'VP of Revenue',
         companyName: 'TestCo',
         campaignObjective: 'Book a 15-min demo',
-        productOrService: 'Ekiddy Outreach AI',
+        productOrService: 'ekiddy Outreach AI',
         tone: 'Short and direct'
       });
     expect(gen.status).toBe(200);

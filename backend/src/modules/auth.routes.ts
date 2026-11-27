@@ -98,7 +98,7 @@ authRouter.post('/register', validateBody(registerSchema), async (req, res, next
       amount: 500,
       balanceAfter: 500,
       idempotencyKey: `welcome:${org._id.toString()}`,
-      description: 'Welcome credit grant for new Ekiddy Outreach AI workspace'
+      description: 'Welcome credit grant for new ekiddy Outreach AI workspace'
     });
 
     await Subscription.create({
