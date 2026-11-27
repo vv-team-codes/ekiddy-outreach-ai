@@ -14,6 +14,16 @@
         X-Content-Type-Options nosniff
         X-Frame-Options DENY
         Referrer-Policy strict-origin-when-cross-origin
+        # Restrictive Content-Security-Policy for the real deployment.
+        # Scripts only from self: no unsafe-inline / unsafe-eval for scripts,
+        # no plugins, no framing of this site anywhere (frame-ancestors 'none').
+        # The frontend ships no inline scripts and no eval, so 'self'-only
+        # scripts work; styles keep 'unsafe-inline' because the built Vite
+        # bundle inlines a small amount of scoped CSS, and images may come
+        # from data: / blob: URLs the app generates locally. Connections are
+        # limited to self plus the Firebase Auth / Google sign-in endpoints
+        # the login flow needs; tighten connect-src if those move.
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.firebaseapp.com https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
     }
 
     log {
