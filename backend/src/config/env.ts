@@ -18,6 +18,7 @@ export interface AppEnv {
   jwtExpiresIn: string;
   encryptionKey: string;
   firebaseProjectId: string;
+  firebaseServiceAccountJson: string;
   geminiApiKey: string;
   geminiDefaultModel: string;
   openRouterApiKey: string;
@@ -58,6 +59,9 @@ export const env: AppEnv = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   encryptionKey: process.env.ENCRYPTION_KEY || process.env.JWT_SECRET || 'ekiddy-dev-encryption-key-change-in-prod',
   firebaseProjectId: process.env.FIREBASE_PROJECT_ID || '',
+  // Full service-account JSON on one line (server only, never committed).
+  // When empty, the Admin SDK falls back to GOOGLE_APPLICATION_CREDENTIALS.
+  firebaseServiceAccountJson: process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '',
   geminiApiKey: process.env.GEMINI_API_KEY || '',
   geminiDefaultModel: process.env.GEMINI_DEFAULT_MODEL || 'gemini-2.5-flash',
   openRouterApiKey: process.env.OPENROUTER_API_KEY || '',
