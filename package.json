@@ -1,0 +1,23 @@
+{
+  "name": "ekiddy-outreach-ai",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "shared",
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "build:shared": "npm run build --workspace=@ekiddy/shared",
+    "dev:backend": "npm run dev --workspace=@ekiddy/backend",
+    "dev:worker": "npm run worker --workspace=@ekiddy/backend",
+    "dev:frontend": "npm run dev --workspace=@ekiddy/frontend",
+    "dev": "node scripts/dev.mjs",
+    "build": "npm run build --workspace=@ekiddy/shared && npm run build --workspace=@ekiddy/backend && npm run build --workspace=@ekiddy/frontend",
+    "typecheck": "npm run typecheck --workspace=@ekiddy/shared && npm run typecheck --workspace=@ekiddy/backend && npm run typecheck --workspace=@ekiddy/frontend",
+    "test:backend": "npm run test --workspace=@ekiddy/backend",
+    "test:frontend": "npm run test --workspace=@ekiddy/frontend",
+    "test:e2e": "npm run test:e2e --workspace=@ekiddy/frontend",
+    "test": "npm run build:shared && npm run test:backend && npm run test:frontend"
+  }
+}
