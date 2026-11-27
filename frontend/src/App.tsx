@@ -23,6 +23,7 @@ import { PeoplePage } from '@/pages/PeoplePage';
 import { SendingAccountsPage } from '@/pages/SendingAccountsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { useAppStore } from '@/stores/appStore';
+import { getSiteBasePath } from '@/lib/siteBase';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -74,9 +75,12 @@ function LandingGate({ children }: { children: React.ReactNode }) {
 }
 
 export function App() {
+  // Served at BOTH the GitHub Pages project path (/ekiddy-outreach-ai/)
+  // and a domain root (app.ekiddy.com): the basename follows the live URL.
+  const routerBasename = getSiteBasePath() || '/';
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter basename="/ekiddy-outreach-ai">
+      <BrowserRouter basename={routerBasename}>
         <Routes>
           <Route
             path="/"

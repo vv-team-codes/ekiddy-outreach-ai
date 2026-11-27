@@ -11,6 +11,8 @@ build/
 .env
 .env.local
 .env.*.local
+.env.production
+.env.staging
 
 # Local runtime & test data
 .local-data/
