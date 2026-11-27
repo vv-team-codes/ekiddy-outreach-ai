@@ -7,6 +7,7 @@ import { Company } from '../models/index.js';
 import { deductCredits } from '../services/credits.service.js';
 import { searchCompaniesFromProvider } from '../services/prospect.service.js';
 import { BadRequestError, NotFoundError, ok } from '../utils/errors.js';
+import { escapeRegExp } from '../utils/sanitize.js';
 
 export const companiesRouter = Router();
 companiesRouter.use(authenticate);
@@ -21,14 +22,15 @@ companiesRouter.get('/', async (req, res, next) => {
 
     const filter: Record<string, unknown> = { organizationId: req.auth!.organizationId };
     if (q) {
+      const safeQ = escapeRegExp(q);
       filter.$or = [
-        { name: { $regex: q, $options: 'i' } },
-        { domain: { $regex: q, $options: 'i' } },
-        { industry: { $regex: q, $options: 'i' } }
+        { name: { $regex: safeQ, $options: 'i' } },
+        { domain: { $regex: safeQ, $options: 'i' } },
+        { industry: { $regex: safeQ, $options: 'i' } }
       ];
     }
-    if (industry) filter.industry = { $regex: industry, $options: 'i' };
-    if (location) filter.location = { $regex: location, $options: 'i' };
+    if (industry) filter.industry = { $regex: escapeRegExp(industry), $options: 'i' };
+    if (location) filter.location = { $regex: escapeRegExp(location), $options: 'i' };
 
     const [items, total] = await Promise.all([
       Company.find(filter)

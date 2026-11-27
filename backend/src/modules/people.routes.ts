@@ -8,6 +8,7 @@ import { deductCredits } from '../services/credits.service.js';
 import { computeLeadScore, searchPeopleFromProvider, verifyEmailAddress } from '../services/prospect.service.js';
 import { queueManager } from '../services/queue.service.js';
 import { BadRequestError, NotFoundError, ok } from '../utils/errors.js';
+import { escapeRegExp } from '../utils/sanitize.js';
 
 export const peopleRouter = Router();
 peopleRouter.use(authenticate);
@@ -22,15 +23,16 @@ peopleRouter.get('/', async (req, res, next) => {
 
     const filter: Record<string, unknown> = { organizationId: req.auth!.organizationId };
     if (q) {
+      const safeQ = escapeRegExp(q);
       filter.$or = [
-        { fullName: { $regex: q, $options: 'i' } },
-        { jobTitle: { $regex: q, $options: 'i' } },
-        { companyName: { $regex: q, $options: 'i' } },
-        { email: { $regex: q, $options: 'i' } }
+        { fullName: { $regex: safeQ, $options: 'i' } },
+        { jobTitle: { $regex: safeQ, $options: 'i' } },
+        { companyName: { $regex: safeQ, $options: 'i' } },
+        { email: { $regex: safeQ, $options: 'i' } }
       ];
     }
     if (emailStatus) filter.emailStatus = emailStatus;
-    if (department) filter.department = { $regex: department, $options: 'i' };
+    if (department) filter.department = { $regex: escapeRegExp(department), $options: 'i' };
 
     const [items, total] = await Promise.all([
       Contact.find(filter)

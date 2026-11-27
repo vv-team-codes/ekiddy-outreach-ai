@@ -26,12 +26,12 @@ export function registerAllQueueHandlers(): void {
     const websiteUrl = String(payload.websiteUrl);
     const companyNameHint = payload.companyNameHint ? String(payload.companyNameHint) : undefined;
 
-    await CompanyResearch.findByIdAndUpdate(researchId, { status: 'running', progress: 15 });
+    await CompanyResearch.findOneAndUpdate({ _id: researchId, organizationId }, { status: 'running', progress: 15 });
     await helpers.updateProgress(15);
 
     try {
       const crawled = await crawlCompanyWebsite(websiteUrl);
-      await CompanyResearch.findByIdAndUpdate(researchId, {
+      await CompanyResearch.findOneAndUpdate({ _id: researchId, organizationId }, {
         progress: 50,
         rawExtractedPages: crawled.pages
       });
@@ -45,7 +45,7 @@ export function registerAllQueueHandlers(): void {
         pageTitles: crawled.pages.map((p) => p.title)
       });
 
-      await CompanyResearch.findByIdAndUpdate(researchId, {
+      await CompanyResearch.findOneAndUpdate({ _id: researchId, organizationId }, {
         status: 'completed',
         progress: 100,
         websiteUrl: crawled.normalizedUrl,
@@ -67,7 +67,7 @@ export function registerAllQueueHandlers(): void {
 
       return { researchId, companyName: aiOut.result.companyName };
     } catch (err) {
-      await CompanyResearch.findByIdAndUpdate(researchId, {
+      await CompanyResearch.findOneAndUpdate({ _id: researchId, organizationId }, {
         status: 'failed',
         errorMessage: err instanceof Error ? err.message : 'Research failed'
       });

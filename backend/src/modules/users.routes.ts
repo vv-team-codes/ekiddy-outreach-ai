@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { User } from '../models/index.js';
 import { BadRequestError, NotFoundError, ok } from '../utils/errors.js';
+import { isSafeHttpUrl, sanitizeText } from '../utils/sanitize.js';
 import { ok as okResp } from '../utils/errors.js';
 
 export const usersRouter = Router();
@@ -21,13 +22,16 @@ usersRouter.get('/profile', async (req, res, next) => {
 usersRouter.patch('/profile', async (req, res, next) => {
   try {
     const { fullName, jobTitle, timezone, avatarUrl } = req.body as Record<string, string | undefined>;
+    if (avatarUrl !== undefined && avatarUrl !== '' && !isSafeHttpUrl(avatarUrl)) {
+      throw new BadRequestError('Avatar URL must be an http(s) URL');
+    }
     const user = await User.findByIdAndUpdate(
       req.auth!.userId,
       {
-        ...(fullName ? { fullName: fullName.trim() } : {}),
-        ...(jobTitle !== undefined ? { jobTitle: jobTitle.trim() } : {}),
-        ...(timezone ? { timezone } : {}),
-        ...(avatarUrl !== undefined ? { avatarUrl } : {})
+        ...(fullName ? { fullName: sanitizeText(fullName, 100) } : {}),
+        ...(jobTitle !== undefined ? { jobTitle: sanitizeText(jobTitle, 150) } : {}),
+        ...(timezone ? { timezone: sanitizeText(timezone, 100) } : {}),
+        ...(avatarUrl !== undefined ? { avatarUrl: avatarUrl ? avatarUrl.trim() : '' } : {})
       },
       { new: true }
     );

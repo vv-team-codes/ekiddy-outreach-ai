@@ -11,6 +11,7 @@ import {
 import { grantCredits } from '../services/credits.service.js';
 import { verifyHmacSha256 } from '../utils/crypto.js';
 import { BadRequestError, ok } from '../utils/errors.js';
+import { sanitizeText } from '../utils/sanitize.js';
 import { recordInboundReply } from './inbox.routes.js';
 
 export const webhooksRouter = Router();
@@ -60,10 +61,16 @@ webhooksRouter.post('/email', async (req, res, next) => {
         { upsert: true }
       );
       if (campaignId && eventType === 'bounced') {
-        await Campaign.findByIdAndUpdate(campaignId, { $inc: { 'stats.bounced': 1 } });
+        await Campaign.findOneAndUpdate(
+          { _id: campaignId, organizationId },
+          { $inc: { 'stats.bounced': 1 } }
+        );
       }
     } else if (eventType === 'delivered' && campaignId) {
-      await Campaign.findByIdAndUpdate(campaignId, { $inc: { 'stats.delivered': 1 } });
+      await Campaign.findOneAndUpdate(
+        { _id: campaignId, organizationId },
+        { $inc: { 'stats.delivered': 1 } }
+      );
     }
 
     await EmailEvent.create({
@@ -72,7 +79,7 @@ webhooksRouter.post('/email', async (req, res, next) => {
       providerMessageId,
       idempotencyKey: `webhook:${eventType}:${providerMessageId || `${cleanEmail}:${Date.now()}`}`,
       toEmail: cleanEmail,
-      subject: subject || '(Webhook Event)',
+      subject: sanitizeText(subject, 300) || '(Webhook Event)',
       eventType: eventType === 'complained' ? 'bounced' : eventType
     });
 
