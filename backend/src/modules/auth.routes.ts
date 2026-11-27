@@ -21,6 +21,7 @@ import {
   SendingAccount,
   Subscription,
   User,
+  type IOrganization,
   type IUser
 } from '../models/index.js';
 import { verifyFirebaseIdToken } from '../services/firebase.service.js';
@@ -81,10 +82,14 @@ async function loadMemberships(user: IUser) {
     memberships.find(
       (m) => m.organizationId?._id?.toString() === user.defaultOrganizationId?.toString()
     ) || memberships[0];
+  // `.populate('organizationId')` resolves the field to the Organization
+  // document at runtime, but the static type stays Types.ObjectId — cast to
+  // IOrganization so callers get the populated shape (and so assigning a
+  // freshly created Organization to these fields compiles).
   return {
-    organization: activeMembership?.organizationId || null,
+    organization: (activeMembership?.organizationId as unknown as IOrganization) || null,
     organizations: memberships.map((m) => ({
-      organization: m.organizationId,
+      organization: m.organizationId as unknown as IOrganization,
       role: m.role
     }))
   };

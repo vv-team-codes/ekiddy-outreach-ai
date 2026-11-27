@@ -32,7 +32,8 @@ const publicBookingSchema = z.object({
 });
 meetingsRouter.get('/public/:slug', async (req, res, next) => {
   try {
-    const org = await Organization.findOne({ bookingSlug: req.params.slug.toLowerCase() });
+    const slug = Array.isArray(req.params.slug) ? req.params.slug[0] ?? '' : req.params.slug;
+    const org = await Organization.findOne({ bookingSlug: slug.toLowerCase() });
     if (!org) throw new NotFoundError('Booking link not found');
 
     const dateStr = String(req.query.date || new Date(Date.now() + 86400000).toISOString().slice(0, 10));
@@ -59,7 +60,8 @@ meetingsRouter.post(
   validateBody(publicBookingSchema),
   async (req, res, next) => {
     try {
-      const org = await Organization.findOne({ bookingSlug: req.params.slug.toLowerCase() });
+      const slug = Array.isArray(req.params.slug) ? req.params.slug[0] ?? '' : req.params.slug;
+      const org = await Organization.findOne({ bookingSlug: slug.toLowerCase() });
       if (!org) throw new NotFoundError('Booking link not found');
 
       const { attendeeName, attendeeEmail, startTime, endTime, timezone, title, description } = req.body;
