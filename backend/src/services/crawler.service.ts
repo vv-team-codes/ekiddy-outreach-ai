@@ -1,5 +1,6 @@
 import * as cheerio from 'cheerio';
 import { safeFetchPublicHtml, validateSafePublicUrl } from '../utils/urlSecurity.js';
+import { sanitizeText } from '../utils/sanitize.js';
 
 export interface CrawledPage {
   url: string;
@@ -24,9 +25,14 @@ export async function crawlCompanyWebsite(rawUrl: string): Promise<CrawlWebsiteR
     const $ = cheerio.load(html);
     $('script, style, noscript, svg, iframe').remove();
 
-    const title = ($('title').text() || $('meta[property="og:title"]').attr('content') || url).trim();
-    const metaDesc = $('meta[name="description"]').attr('content') || '';
-    const bodyText = $('body').text().replace(/\s+/g, ' ').trim();
+    // cheerio .text() already drops tags, but sanitise again at the storage
+    // boundary so crawled markup can never be persisted as live HTML.
+    const title = sanitizeText(
+      $('title').text() || $('meta[property="og:title"]').attr('content') || url,
+      200
+    );
+    const metaDesc = sanitizeText($('meta[name="description"]').attr('content') || '', 500);
+    const bodyText = sanitizeText($('body').text().replace(/\s+/g, ' '), 4000);
 
     const candidateLinks: string[] = [];
     $('a[href]').each((_, el) => {

@@ -13,6 +13,7 @@ import {
   type ISendingAccount
 } from '../models/index.js';
 import { decryptObject } from '../utils/crypto.js';
+import { sanitizeMultilineText, sanitizeText } from '../utils/sanitize.js';
 import { BadRequestError } from '../utils/errors.js';
 
 export async function inspectDomainDns(domain: string) {
@@ -110,6 +111,11 @@ export async function dispatchOutboundEmail(params: {
   forceSandbox?: boolean;
 }) {
   const normalizedTo = params.toEmail.trim().toLowerCase();
+  // Storage/render boundary: emails are plain text only. Strip any markup
+  // (e.g. <script>, <img onerror>, javascript: URLs) from the subject and
+  // body before they are stored, previewed or sent.
+  const subject = sanitizeText(params.subject, 300);
+  const bodyText = sanitizeMultilineText(params.bodyText, 10000);
 
   // Check idempotency first
   const existingEvent = await EmailEvent.findOne({
@@ -134,8 +140,8 @@ export async function dispatchOutboundEmail(params: {
       stepOrder: params.stepOrder ?? 1,
       idempotencyKey: params.idempotencyKey,
       toEmail: normalizedTo,
-      subject: params.subject,
-      bodyPreview: params.bodyText.slice(0, 200),
+      subject: subject,
+      bodyPreview: bodyText.slice(0, 200),
       eventType: 'suppressed',
       errorMessage: `Skipped: recipient is on suppression list (${suppressed.reason})`
     });
@@ -194,8 +200,8 @@ export async function dispatchOutboundEmail(params: {
       body: JSON.stringify({
         from: `${fromName} <${fromEmail}>`,
         to: [normalizedTo],
-        subject: params.subject,
-        text: params.bodyText
+        subject: subject,
+        text: bodyText
       })
     });
     if (!res.ok) {
@@ -221,8 +227,8 @@ export async function dispatchOutboundEmail(params: {
     const info = await transporter.sendMail({
       from: `"${fromName}" <${fromEmail}>`,
       to: normalizedTo,
-      subject: params.subject,
-      text: params.bodyText
+      subject: subject,
+      text: bodyText
     });
     providerMessageId = info.messageId || providerMessageId;
   }
@@ -231,26 +237,28 @@ export async function dispatchOutboundEmail(params: {
   let conversation = await Conversation.findOne({
     organizationId: params.organizationId,
     contactId: params.contactId,
-    subject: params.subject
+    subject: subject
   });
 
   if (!conversation) {
-    const contact = params.contactId ? await Contact.findById(params.contactId) : null;
+    const contact = params.contactId
+      ? await Contact.findOne({ _id: params.contactId, organizationId: params.organizationId })
+      : null;
     conversation = await Conversation.create({
       organizationId: params.organizationId,
       campaignId: params.campaignId,
       contactId: params.contactId,
       companyId: contact?.companyId,
       sendingAccountId: account?._id,
-      subject: params.subject,
+      subject: subject,
       folder: 'all',
       classification: 'Other',
       lastMessageAt: new Date(),
-      lastMessageSnippet: params.bodyText.slice(0, 180)
+      lastMessageSnippet: bodyText.slice(0, 180)
     });
   } else {
     conversation.lastMessageAt = new Date();
-    conversation.lastMessageSnippet = params.bodyText.slice(0, 180);
+    conversation.lastMessageSnippet = bodyText.slice(0, 180);
     await conversation.save();
   }
 
@@ -260,8 +268,8 @@ export async function dispatchOutboundEmail(params: {
     direction: 'outbound',
     fromEmail,
     toEmail: normalizedTo,
-    subject: params.subject,
-    bodyText: params.bodyText,
+    subject: subject,
+    bodyText: bodyText,
     status: 'sent',
     providerMessageId
   });
@@ -276,8 +284,8 @@ export async function dispatchOutboundEmail(params: {
     idempotencyKey: params.idempotencyKey,
     providerMessageId,
     toEmail: normalizedTo,
-    subject: params.subject,
-    bodyPreview: params.bodyText.slice(0, 220),
+    subject: subject,
+    bodyPreview: bodyText.slice(0, 220),
     eventType: 'sent',
     metadata: { provider, sandbox: provider === 'sandbox' }
   });
@@ -293,8 +301,8 @@ export async function dispatchOutboundEmail(params: {
       idempotencyKey: `${params.idempotencyKey}:delivered`,
       providerMessageId,
       toEmail: normalizedTo,
-      subject: params.subject,
-      bodyPreview: params.bodyText.slice(0, 220),
+      subject: subject,
+      bodyPreview: bodyText.slice(0, 220),
       eventType: 'delivered',
       metadata: { provider: 'sandbox' }
     });
@@ -304,16 +312,19 @@ export async function dispatchOutboundEmail(params: {
     await SendingAccount.findByIdAndUpdate(account._id, { $inc: { sentToday: 1 } });
   }
   if (params.campaignId) {
-    await Campaign.findByIdAndUpdate(params.campaignId, {
-      $inc: {
-        'stats.sent': 1,
-        ...(provider === 'sandbox' ? { 'stats.delivered': 1 } : {})
+    await Campaign.findOneAndUpdate(
+      { _id: params.campaignId, organizationId: params.organizationId },
+      {
+        $inc: {
+          'stats.sent': 1,
+          ...(provider === 'sandbox' ? { 'stats.delivered': 1 } : {})
+        }
       }
-    });
+    );
   }
   if (params.contactId) {
     await Contact.findOneAndUpdate(
-      { _id: params.contactId, stage: 'new' },
+      { _id: params.contactId, organizationId: params.organizationId, stage: 'new' },
       { stage: 'contacted' }
     );
   }
