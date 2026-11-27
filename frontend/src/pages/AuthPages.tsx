@@ -6,7 +6,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 import { forgotPasswordSchema, isWorkEmail, loginSchema, registerSchema, resetPasswordSchema, WORK_EMAIL_ONLY_MESSAGE } from '@ekiddy/shared';
 import { Button, Card, CardContent, Input } from '@/components/ui';
-import { apiRequest } from '@/lib/api';
+import { apiRequest, isBackendConfigured } from '@/lib/api';
 import {
   confirmReset,
   friendlyFirebaseError,
@@ -21,10 +21,15 @@ import {
   verifyResetCode,
   auth
 } from '@/lib/firebase';
-import { exchangeFirebaseSession, type AuthPayload } from '@/lib/firebaseSession';
+import { exchangeFirebaseSession, isBackendUnavailableError, type AuthPayload } from '@/lib/firebaseSession';
 import { useAppStore } from '@/stores/appStore';
 
 const RESET_SENT_MESSAGE = 'If an account matches that email, reset instructions have been sent.';
+
+// Shown when Firebase sign-in succeeded but there is no workspace backend
+// to provision the workspace yet (e.g. the static GitHub Pages host).
+const backendNotConnectedMessage = (email: string) =>
+  `Signed in as ${email}. The workspace service is not connected yet — your account is created and your workspace will be ready once it is connected.`;
 
 function AuthWrapper({
   title,
@@ -68,7 +73,7 @@ function AuthWrapper({
 
 function GoogleButton({ onClick, loading }: { onClick: () => void; loading: boolean }) {
   return (
-    <Button type="button" variant="outline" loading={loading} onClick={onClick} className="w-full">
+    <Button type="button" variant="primary" size="lg" loading={loading} onClick={onClick} className="w-full">
       <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white text-[11px] font-bold text-slate-900 ring-1 ring-stone-200">
         G
       </span>
@@ -123,7 +128,17 @@ export function LoginPage() {
       setServerError(WORK_EMAIL_ONLY_MESSAGE);
       return;
     }
-    const res = await exchangeFirebaseSession(await credential.user.getIdToken());
+    let res: AuthPayload;
+    try {
+      res = await exchangeFirebaseSession(await credential.user.getIdToken());
+    } catch (err) {
+      if (isBackendUnavailableError(err)) {
+        // Firebase sign-in succeeded; only the workspace backend is missing.
+        setServerError(backendNotConnectedMessage(email));
+        return;
+      }
+      throw err;
+    }
     setSession({
       token: res.token,
       user: res.user,
@@ -180,7 +195,17 @@ export function LoginPage() {
     }
     try {
       const credential = await signInWithEmail(values.email, values.password);
-      const res = await exchangeFirebaseSession(await credential.user.getIdToken());
+      let res: AuthPayload;
+      try {
+        res = await exchangeFirebaseSession(await credential.user.getIdToken());
+      } catch (exchangeErr) {
+        if (isBackendUnavailableError(exchangeErr)) {
+          // Firebase sign-in succeeded; only the workspace backend is missing.
+          setServerError(backendNotConnectedMessage(values.email));
+          return;
+        }
+        throw exchangeErr;
+      }
       setSession({
         token: res.token,
         user: res.user,
@@ -192,9 +217,10 @@ export function LoginPage() {
       goToApp(navigate, res);
     } catch (err) {
       // Fallback: backend password login, only when Firebase itself is
-      // unreachable (network error). It is not used for wrong passwords or
-      // unknown accounts.
-      if (isNetworkError(err)) {
+      // unreachable (network error) AND a backend is configured. It is not
+      // used for wrong passwords or unknown accounts, and never on a
+      // static host with no backend behind /api/*.
+      if (isNetworkError(err) && isBackendConfigured) {
         try {
           const res = await apiRequest<AuthPayload>('/api/auth/login', {
             method: 'POST',
@@ -296,9 +322,19 @@ export function RegisterPage() {
     }
     // Google accounts arrive already verified, so the workspace is created
     // straight away. The user's name comes from their Google profile.
-    const res = await exchangeFirebaseSession(await credential.user.getIdToken(), {
-      fullName: credential.user.displayName || undefined
-    });
+    let res: AuthPayload;
+    try {
+      res = await exchangeFirebaseSession(await credential.user.getIdToken(), {
+        fullName: credential.user.displayName || undefined
+      });
+    } catch (err) {
+      if (isBackendUnavailableError(err)) {
+        // Firebase sign-in succeeded; only the workspace backend is missing.
+        setServerError(backendNotConnectedMessage(email));
+        return;
+      }
+      throw err;
+    }
     finishRegistration(res);
   };
 
@@ -358,6 +394,13 @@ export function RegisterPage() {
         });
         finishRegistration(res);
       } catch (exchangeErr) {
+        if (isBackendUnavailableError(exchangeErr)) {
+          // No backend behind the static Pages host: the Firebase account
+          // is created and the verification email is sent; the workspace
+          // is provisioned once a backend is connected.
+          setVerifySentEmail(values.email);
+          return;
+        }
         const status = (exchangeErr as { status?: number })?.status;
         if (status === 401 || status === 403) {
           setVerifySentEmail(values.email);
@@ -367,8 +410,9 @@ export function RegisterPage() {
       }
     } catch (err) {
       // Fallback: backend password register, only when Firebase itself is
-      // unreachable (network error).
-      if (isNetworkError(err)) {
+      // unreachable (network error) AND a backend is configured. Never
+      // fall back to POST /api/auth/register with no backend configured.
+      if (isNetworkError(err) && isBackendConfigured) {
         try {
           const res = await apiRequest<AuthPayload>('/api/auth/register', {
             method: 'POST',
