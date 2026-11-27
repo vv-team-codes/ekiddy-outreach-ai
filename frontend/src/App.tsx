@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppShell } from '@/components/layout/AppShell';
 import { ToastContainer } from '@/components/ui';
@@ -41,12 +41,51 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Sign-in gate for the landing page (user rule): a signed-out visitor may
+// look at the page, but no action button works without an account — their
+// work must auto-save to an account so it is still there when they return.
+// Allowed without an account: the theme toggle, in-page anchor links, the
+// logo, the Sign In / Start Free links, and the website form (its submit
+// handler saves the typed website and routes to sign-up). Every other
+// button or control sends the visitor to /login instead of acting.
+function LandingGate({ children }: { children: React.ReactNode }) {
+  const token = useAppStore((s) => s.token);
+  const navigate = useNavigate();
+  if (token) {
+    return <>{children}</>;
+  }
+  return (
+    <div
+      onClickCapture={(e) => {
+        const el = (e.target as HTMLElement).closest('a,button,input,select,textarea');
+        if (!el) return;
+        if (el.getAttribute('aria-label') === 'Toggle theme') return;
+        if (el.closest('form')) return;
+        const href = el.getAttribute('href');
+        if (href === '/login' || href === '/register' || href === '/' || (href && href.startsWith('#'))) return;
+        e.preventDefault();
+        e.stopPropagation();
+        navigate('/login');
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter basename="/ekiddy-outreach-ai">
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          <Route
+            path="/"
+            element={
+              <LandingGate>
+                <LandingPage />
+              </LandingGate>
+            }
+          />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
