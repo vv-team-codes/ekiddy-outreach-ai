@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { createOrganizationSchema, inviteMemberSchema } from '@ekiddy/shared';
-import { env } from '../config/env.js';
 import { authenticate, recordAuditLog, requireRole } from '../middleware/auth.middleware.js';
 import { validateBody } from '../middleware/validate.middleware.js';
 import {
@@ -152,15 +151,9 @@ organizationsRouter.post('/:id/invitations', requireRole('owner', 'admin'), vali
       metadata: { email: req.body.email, role: req.body.role }
     });
 
-    ok(
-      res,
-      {
-        membership,
-        ...(env.nodeEnv !== 'production' ? { devInviteToken: rawToken } : {})
-      },
-      undefined,
-      201
-    );
+    // The raw invite token is never returned in any response; it is only
+    // delivered through the out-of-band invite email flow.
+    ok(res, { membership }, undefined, 201);
   } catch (err) {
     next(err);
   }
