@@ -85,6 +85,9 @@ export async function apiRequestWithMeta<T>(
     error?: { code?: string; message?: string; details?: unknown };
   };
   if (!response.ok || !payload.success) {
+    if (response.status === 401) {
+      useAppStore.getState().clearSession();
+    }
     throw new ApiClientError(
       payload.error?.message || `Request failed (${response.status})`,
       response.status,

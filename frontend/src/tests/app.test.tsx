@@ -17,7 +17,7 @@ function wrap(ui: React.ReactNode) {
   );
 }
 
-describe('Ekiddy Frontend Design System & Core Views', () => {
+describe('ekiddy Frontend Design System & Core Views', () => {
   it('renders landing page hero URL input and persists pending URL', async () => {
     const user = userEvent.setup();
     wrap(<LandingPage />);

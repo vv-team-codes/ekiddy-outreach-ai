@@ -84,7 +84,7 @@ export function CampaignsPage() {
     dailySendLimit: 30,
     step1Subject: 'Quick question for {{companyName}}',
     step1Body:
-      'Hi {{firstName}},\n\nNoticed your leadership role as {{jobTitle}} at {{companyName}} and wanted to share how Ekiddy Outreach AI streamlines pipeline generation.\n\nOpen to a brief chat?\n\nBest,\nTeam',
+      'Hi {{firstName}},\n\nNoticed your leadership role as {{jobTitle}} at {{companyName}} and wanted to share how ekiddy Outreach AI streamlines pipeline generation.\n\nOpen to a brief chat?\n\nBest,\nTeam',
     step2Subject: 'Re: Quick question for {{companyName}}',
     step2Body:
       'Hi {{firstName}},\n\nFollowing up briefly in case this got buried. Happy to send a 2-minute overview tailored to {{companyName}}.\n\nBest,\nTeam'

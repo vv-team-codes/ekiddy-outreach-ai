@@ -151,12 +151,12 @@ export function AppShell() {
       <div className="flex h-14 items-center justify-between border-b border-stone-200/90 px-3.5 dark:border-slate-800">
         <Link to="/app" className="flex items-center gap-2.5 overflow-hidden">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-950 text-sm font-bold text-white dark:bg-blue-600">
-            E
+            e
           </div>
           {!sidebarCollapsed && (
             <div className="truncate">
               <div className="font-display text-sm font-bold tracking-tight text-slate-950 dark:text-white">
-                Ekiddy Outreach
+                ekiddy Outreach
               </div>
               <div className="text-[10px] font-semibold uppercase tracking-wider text-blue-700 dark:text-blue-400">
                 Revenue OS

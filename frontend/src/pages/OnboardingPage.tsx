@@ -132,17 +132,52 @@ export function OnboardingPage() {
         method: 'POST',
         body: JSON.stringify({ websiteUrl })
       });
+      // Poll until the research reaches a terminal state (up to ~90s).
+      // A timeout or failure must never show a false "complete" toast.
       let latest = res.research;
-      for (let i = 0; i < 15 && latest.status !== 'completed' && latest.status !== 'failed'; i++) {
-        await new Promise((r) => setTimeout(r, 800));
+      let attempts = 0;
+      while (latest.status !== 'completed' && latest.status !== 'failed' && attempts < 60) {
+        await new Promise((r) => setTimeout(r, 1500));
         latest = await apiRequest<ResearchDoc>(`/api/research/company/${latest._id}`);
+        attempts += 1;
       }
       setResearch(latest);
       await queryClient.invalidateQueries({ queryKey: ['credits-balance'] });
-      await persistStep(3, { researchId: latest._id });
-      addToast({ type: 'success', title: 'Company research complete' });
+      if (latest.status === 'completed') {
+        await persistStep(3, { researchId: latest._id });
+        addToast({ type: 'success', title: 'Company research complete' });
+      } else if (latest.status === 'failed') {
+        addToast({ type: 'error', title: 'Research failed', description: 'The research run failed. Please try again.' });
+      } else {
+        addToast({
+          type: 'error',
+          title: 'Research is taking longer than expected',
+          description: 'It is still running. Use "Check research status" on step 2 to check again.'
+        });
+      }
     } catch (err) {
       addToast({ type: 'error', title: 'Research failed', description: err instanceof Error ? err.message : 'Error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCheckResearchStatus = async () => {
+    if (!research) return;
+    setLoading(true);
+    try {
+      const latest = await apiRequest<ResearchDoc>(`/api/research/company/${research._id}`);
+      setResearch(latest);
+      if (latest.status === 'completed') {
+        await persistStep(3, { researchId: latest._id });
+        addToast({ type: 'success', title: 'Company research complete' });
+      } else if (latest.status === 'failed') {
+        addToast({ type: 'error', title: 'Research failed', description: 'The research run failed. Please try again.' });
+      } else {
+        addToast({ type: 'info', title: 'Research still running', description: 'Please check again in a moment.' });
+      }
+    } catch (err) {
+      addToast({ type: 'error', title: 'Could not check status', description: err instanceof Error ? err.message : '' });
     } finally {
       setLoading(false);
     }
@@ -316,12 +351,17 @@ export function OnboardingPage() {
               <Badge tone="indigo">2. Extracting Pages</Badge>
               <Badge tone="neutral">3. Structuring Profile</Badge>
             </div>
+            {research && (
+              <Button variant="outline" size="sm" className="mt-5" onClick={handleCheckResearchStatus} loading={loading}>
+                Check research status
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
 
       {/* Step 3: Company Profile */}
-      {step === 3 && research && (
+      {step === 3 && research?.status === 'completed' && (
         <Card>
           <CardHeader
             title="Step 3: Review Your AI Company Profile"
@@ -357,6 +397,33 @@ export function OnboardingPage() {
               </Button>
               <Button onClick={handleSaveProfileAndNext} loading={loading}>
                 Save & Discover Competitors (5 credits)
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 3: loading / empty state — never a blank page */}
+      {step === 3 && research?.status !== 'completed' && (
+        <Card>
+          <CardContent className="flex flex-col items-center py-12 text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-700 dark:text-blue-400" />
+            <h3 className="font-display mt-4 text-base font-bold">
+              {research ? 'Your company profile is still being researched…' : 'Loading your company profile…'}
+            </h3>
+            <p className="mt-1 max-w-md text-xs text-slate-500">
+              {research
+                ? 'Research has not finished yet. Check the status, or go back and run it again.'
+                : 'No company profile is loaded yet. Run the research from step 1 to continue.'}
+            </p>
+            <div className="mt-5 flex gap-2">
+              {research && (
+                <Button variant="outline" onClick={handleCheckResearchStatus} loading={loading}>
+                  Check research status
+                </Button>
+              )}
+              <Button variant="outline" onClick={() => setStep(1)}>
+                Back to Step 1
               </Button>
             </div>
           </CardContent>
@@ -478,7 +545,7 @@ export function OnboardingPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
               <CheckCircle2 className="h-6 w-6" />
             </div>
-            <h3 className="font-display mt-4 text-lg font-bold">Your Ekiddy Outreach AI workspace is ready!</h3>
+            <h3 className="font-display mt-4 text-lg font-bold">Your ekiddy Outreach AI workspace is ready!</h3>
             <p className="mt-1 max-w-md text-xs text-slate-500">
               Head to your main dashboard to search decision-makers, verify emails, and launch your approved campaign.
             </p>

@@ -15,6 +15,7 @@ import {
   StatusIndicator
 } from '@/components/ui';
 import { apiRequest } from '@/lib/api';
+import { getSiteUrl } from '@/lib/siteBase';
 import { formatDateTime } from '@/lib/utils';
 import { useAppStore } from '@/stores/appStore';
 
@@ -39,8 +40,8 @@ export function MeetingsPage() {
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({
     title: 'Product Discovery Demo',
-    attendeeName: 'Maya Lin',
-    attendeeEmail: 'maya.lin@northstarcloud.example',
+    attendeeName: '',
+    attendeeEmail: '',
     startTime: new Date(Date.now() + 86400000).toISOString().slice(0, 11) + '10:00:00.000Z',
     endTime: new Date(Date.now() + 86400000).toISOString().slice(0, 11) + '10:30:00.000Z',
     timezone: 'UTC'
@@ -61,7 +62,7 @@ export function MeetingsPage() {
     enabled: Boolean(organization?._id)
   });
 
-  const bookingUrl = data?.bookingSlug ? `${window.location.origin}/book/${data.bookingSlug}` : '';
+  const bookingUrl = data?.bookingSlug ? getSiteUrl(`/book/${data.bookingSlug}`) : '';
 
   const handleSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,8 +186,8 @@ export function MeetingsPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {m.meetingLink && (
-                    <a href={m.meetingLink} target="_blank" rel="noreferrer" className="text-xs font-medium text-indigo-600 inline-flex items-center gap-1 hover:underline">
+                  {m.meetingLink && m.meetingLink.startsWith('https://') && (
+                    <a href={m.meetingLink} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-indigo-600 inline-flex items-center gap-1 hover:underline">
                       Join Link <ExternalLink className="h-3 w-3" />
                     </a>
                   )}

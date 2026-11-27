@@ -19,6 +19,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { CREDIT_COSTS, SUBSCRIPTION_PLANS } from '@ekiddy/shared';
 import { Badge, Button } from '@/components/ui';
 import { useAppStore } from '@/stores/appStore';
+import { getSiteUrl } from '@/lib/siteBase';
 
 type PreviewTab = 'brief' | 'icp' | 'email' | 'calendar';
 
@@ -106,10 +107,10 @@ export function LandingPage() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link to="/" className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-sm font-bold text-white dark:bg-blue-600">
-              E
+              e
             </div>
             <div>
-              <span className="font-display text-base font-bold tracking-tight">Ekiddy Outreach AI</span>
+              <span className="font-display text-base font-bold tracking-tight">ekiddy Outreach AI</span>
             </div>
           </Link>
 
@@ -169,7 +170,7 @@ export function LandingPage() {
             </h1>
 
             <p className="mt-4 max-w-xl text-base leading-relaxed text-slate-600 dark:text-slate-400">
-              Paste your URL and Ekiddy runs SSRF-safe company analysis, competitor benchmarking,
+              Paste your URL and ekiddy runs SSRF-safe company analysis, competitor benchmarking,
               verified decision-maker discovery, approval-gated sequences, AI reply triage, and
               calendar booking in one connected workspace.
             </p>
@@ -349,7 +350,7 @@ export function LandingPage() {
                       <Badge tone="success">Google Calendar / Local</Badge>
                     </div>
                     <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 font-mono text-[11px] text-blue-700 dark:border-slate-800 dark:bg-slate-950 dark:text-blue-400">
-                      app.ekiddy.com/book/{activePreview.company.toLowerCase()}
+                      {getSiteUrl(`/book/${activePreview.company.toLowerCase()}`)}
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       {['09:30 UTC', '11:00 UTC', '14:30 UTC'].map((slot) => (
@@ -646,7 +647,7 @@ export function LandingPage() {
       </section>
 
       <footer className="border-t border-stone-200 py-8 text-center text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
-        Ekiddy Outreach AI — Independent B2B Sales Intelligence & Outreach Automation Platform.
+        ekiddy Outreach AI — Independent B2B Sales Intelligence & Outreach Automation Platform.
       </footer>
     </div>
   );
