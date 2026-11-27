@@ -1,12 +1,14 @@
 import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { createCampaignSchema, QUEUE_NAMES } from '@ekiddy/shared';
+import { CAMPAIGN_STATUSES, createCampaignSchema, QUEUE_NAMES, sequenceStepSchema } from '@ekiddy/shared';
 import { authenticate, recordAuditLog, requireRole } from '../middleware/auth.middleware.js';
 import { validateBody } from '../middleware/validate.middleware.js';
 import { Campaign, EmailEvent, EmailSequence } from '../models/index.js';
 import { deductCredits } from '../services/credits.service.js';
 import { queueManager } from '../services/queue.service.js';
 import { BadRequestError, NotFoundError, ok } from '../utils/errors.js';
+import { sanitizeText } from '../utils/sanitize.js';
+import { z } from 'zod';
 
 export const campaignsRouter = Router();
 campaignsRouter.use(authenticate);
@@ -90,13 +92,43 @@ campaignsRouter.get('/:id', async (req, res, next) => {
 
 campaignsRouter.patch('/:id', async (req, res, next) => {
   try {
-    const { steps, ...updates } = req.body as Record<string, unknown>;
+    const { steps, ...rest } = req.body as Record<string, unknown>;
     const campaign = await Campaign.findOne({
       _id: req.params.id,
       organizationId: req.auth!.organizationId
     });
     if (!campaign) throw new NotFoundError('Campaign not found');
 
+    // Mass-assignment guard: only whitelisted fields may change, and text
+    // fields are sanitised. organizationId / stats / approvedBy / sequenceId
+    // can never be overwritten through this endpoint.
+    const allowedFields = new Set([
+      'name',
+      'objective',
+      'segment',
+      'geography',
+      'industries',
+      'jobTitles',
+      'targetCompanyIds',
+      'targetContactIds',
+      'sendingAccountId',
+      'testMode',
+      'dailySendLimit',
+      'status'
+    ]);
+    const updates: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(rest)) {
+      if (allowedFields.has(key)) updates[key] = value;
+    }
+    if (typeof updates.name === 'string') updates.name = sanitizeText(updates.name, 200);
+    if (typeof updates.objective === 'string') updates.objective = sanitizeText(updates.objective, 500);
+    if (typeof updates.segment === 'string') updates.segment = sanitizeText(updates.segment, 200);
+    if (
+      typeof updates.status === 'string' &&
+      !(CAMPAIGN_STATUSES as readonly string[]).includes(updates.status)
+    ) {
+      delete updates.status;
+    }
     Object.assign(campaign, updates);
     if (Array.isArray(updates.targetContactIds)) {
       campaign.stats.totalContacts = updates.targetContactIds.length;
@@ -104,9 +136,11 @@ campaignsRouter.patch('/:id', async (req, res, next) => {
     await campaign.save();
 
     if (Array.isArray(steps) && steps.length > 0) {
+      const parsedSteps = z.array(sequenceStepSchema).min(1).max(10).safeParse(steps);
+      if (!parsedSteps.success) throw new BadRequestError('Invalid campaign steps');
       await EmailSequence.findOneAndUpdate(
         { campaignId: campaign._id, organizationId: req.auth!.organizationId },
-        { steps },
+        { steps: parsedSteps.data },
         { upsert: true }
       );
     }

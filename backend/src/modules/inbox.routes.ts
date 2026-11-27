@@ -13,6 +13,7 @@ import {
 import { classifyAndDraftReplyWithAI } from '../services/ai.service.js';
 import { queueManager } from '../services/queue.service.js';
 import { ok } from '../utils/errors.js';
+import { escapeRegExp, sanitizeMultilineText, sanitizeText } from '../utils/sanitize.js';
 
 export const inboxRouter = Router();
 inboxRouter.use(authenticate);
@@ -45,16 +46,20 @@ export async function recordInboundReply(params: {
   campaignId?: string;
 }) {
   const normalizedFrom = params.fromEmail.trim().toLowerCase();
+  // Inbound mail is untrusted external content: strip markup before it is
+  // stored, classified or drafted from.
+  const subject = sanitizeText(params.subject, 300);
+  const bodyText = sanitizeMultilineText(params.bodyText, 10000);
   const contact = await Contact.findOne({ organizationId: params.organizationId, email: normalizedFrom });
 
   let conversation = await Conversation.findOne({
     organizationId: params.organizationId,
-    ...(contact ? { contactId: contact._id } : { subject: params.subject })
+    ...(contact ? { contactId: contact._id } : { subject: subject })
   }).sort({ lastMessageAt: -1 });
 
   const classificationResult = await classifyAndDraftReplyWithAI({
     organizationId: params.organizationId,
-    incomingText: params.bodyText,
+    incomingText: bodyText,
     contactName: contact?.fullName || normalizedFrom,
     companyName: contact?.companyName,
     senderName: 'ekiddy Team'
@@ -68,19 +73,19 @@ export async function recordInboundReply(params: {
       campaignId: params.campaignId,
       contactId: contact?._id,
       companyId: contact?.companyId,
-      subject: params.subject || 'Reply from prospect',
+      subject: subject || 'Reply from prospect',
       folder,
       classification: classificationResult.result.classification,
       unreadCount: 1,
       lastMessageAt: new Date(),
-      lastMessageSnippet: params.bodyText.slice(0, 180)
+      lastMessageSnippet: bodyText.slice(0, 180)
     });
   } else {
     conversation.folder = folder;
     conversation.classification = classificationResult.result.classification;
     conversation.unreadCount += 1;
     conversation.lastMessageAt = new Date();
-    conversation.lastMessageSnippet = params.bodyText.slice(0, 180);
+    conversation.lastMessageSnippet = bodyText.slice(0, 180);
     await conversation.save();
   }
 
@@ -90,8 +95,8 @@ export async function recordInboundReply(params: {
     direction: 'inbound',
     fromEmail: normalizedFrom,
     toEmail: params.toEmail.toLowerCase(),
-    subject: params.subject,
-    bodyText: params.bodyText,
+    subject: subject,
+    bodyText: bodyText,
     status: 'received',
     providerMessageId: params.providerMessageId
   });
@@ -141,12 +146,15 @@ export async function recordInboundReply(params: {
     const isPositive = ['Interested', 'Positive response', 'Meeting request'].includes(
       classificationResult.result.classification
     );
-    await Campaign.findByIdAndUpdate(linkedCampaignId, {
-      $inc: {
-        'stats.replied': 1,
-        ...(isPositive ? { 'stats.positiveReplies': 1 } : {})
+    await Campaign.findOneAndUpdate(
+      { _id: linkedCampaignId, organizationId: params.organizationId },
+      {
+        $inc: {
+          'stats.replied': 1,
+          ...(isPositive ? { 'stats.positiveReplies': 1 } : {})
+        }
       }
-    });
+    );
   }
 
   await EmailEvent.create({
@@ -156,8 +164,8 @@ export async function recordInboundReply(params: {
     conversationId: conversation._id,
     idempotencyKey: `reply:${params.providerMessageId || inboundMsg._id.toString()}`,
     toEmail: normalizedFrom,
-    subject: params.subject,
-    bodyPreview: params.bodyText.slice(0, 180),
+    subject: subject,
+    bodyPreview: bodyText.slice(0, 180),
     eventType: 'replied'
   });
 
@@ -198,9 +206,12 @@ inboxRouter.get('/threads', async (req, res, next) => {
     }
     if (classification) filter.classification = classification;
     if (q) {
+      // Escape the search term: raw user input must never become a regex
+      // (regex injection / ReDoS via patterns such as "(a+)+$").
+      const safeQ = escapeRegExp(q);
       filter.$or = [
-        { subject: { $regex: q, $options: 'i' } },
-        { lastMessageSnippet: { $regex: q, $options: 'i' } }
+        { subject: { $regex: safeQ, $options: 'i' } },
+        { lastMessageSnippet: { $regex: safeQ, $options: 'i' } }
       ];
     }
 

@@ -7,9 +7,25 @@ import { CompanyResearch, EmailTemplate } from '../models/index.js';
 import { generateEmailWithAI } from '../services/ai.service.js';
 import { deductCredits } from '../services/credits.service.js';
 import { BadRequestError, NotFoundError, ok } from '../utils/errors.js';
+import { sanitizeMultilineText, sanitizeText } from '../utils/sanitize.js';
+import { z } from 'zod';
 
 export const emailsRouter = Router();
 emailsRouter.use(authenticate);
+
+// Backend-local validation for email templates (shared/src is read-only):
+// bounded lengths on every text field, tone restricted to the known enum.
+const emailTemplateSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  objective: z.string().trim().max(500).optional(),
+  tone: z.enum(EMAIL_TONES).optional(),
+  subject: z.string().trim().min(1).max(300),
+  openingLine: z.string().trim().max(500).optional(),
+  body: z.string().trim().min(1).max(10000),
+  cta: z.string().trim().max(500).optional(),
+  followUpBody: z.string().trim().max(10000).optional(),
+  isAiGenerated: z.boolean().optional()
+});
 
 emailsRouter.post('/generate', validateBody(generateEmailSchema), async (req, res, next) => {
   try {
@@ -75,30 +91,26 @@ emailsRouter.get('/templates', async (req, res, next) => {
   }
 });
 
-emailsRouter.post('/templates', async (req, res, next) => {
+emailsRouter.post('/templates', validateBody(emailTemplateSchema), async (req, res, next) => {
   try {
-    const { name, objective, tone, subject, openingLine, body, cta, followUpBody, isAiGenerated } = req.body as Record<
-      string,
-      unknown
-    >;
-    if (!name || !subject || !body) {
-      throw new BadRequestError('Template name, subject, and body are required');
-    }
+    const { name, objective, tone, subject, openingLine, body, cta, followUpBody, isAiGenerated } = req.body;
+    const cleanSubject = sanitizeText(subject, 300);
+    const cleanBody = sanitizeMultilineText(body, 10000);
 
-    const variableMatches = Array.from(String(body).matchAll(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g)).map(
+    const variableMatches = Array.from(cleanBody.matchAll(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g)).map(
       (m) => m[1]
     );
 
     const template = await EmailTemplate.create({
       organizationId: req.auth!.organizationId,
-      name: String(name).trim(),
-      objective: objective ? String(objective) : undefined,
-      tone: EMAIL_TONES.includes(tone as (typeof EMAIL_TONES)[number]) ? tone : 'Professional',
-      subject: String(subject),
-      openingLine: openingLine ? String(openingLine) : undefined,
-      body: String(body),
-      cta: cta ? String(cta) : undefined,
-      followUpBody: followUpBody ? String(followUpBody) : undefined,
+      name: sanitizeText(name, 200),
+      objective: objective ? sanitizeText(objective, 500) : undefined,
+      tone: tone || 'Professional',
+      subject: cleanSubject,
+      openingLine: openingLine ? sanitizeText(openingLine, 500) : undefined,
+      body: cleanBody,
+      cta: cta ? sanitizeText(cta, 500) : undefined,
+      followUpBody: followUpBody ? sanitizeMultilineText(followUpBody, 10000) : undefined,
       variables: Array.from(new Set(variableMatches)),
       isAiGenerated: Boolean(isAiGenerated ?? true)
     });
@@ -110,9 +122,30 @@ emailsRouter.post('/templates', async (req, res, next) => {
 
 emailsRouter.patch('/templates/:id', async (req, res, next) => {
   try {
+    // Mass-assignment guard: only whitelisted template fields, sanitised.
+    const allowed: Record<string, (v: unknown) => unknown> = {
+      name: (v) => sanitizeText(v, 200),
+      objective: (v) => sanitizeText(v, 500),
+      tone: (v) =>
+        typeof v === 'string' && (EMAIL_TONES as readonly string[]).includes(v) ? v : undefined,
+      subject: (v) => sanitizeText(v, 300),
+      openingLine: (v) => sanitizeText(v, 500),
+      body: (v) => sanitizeMultilineText(v, 10000),
+      cta: (v) => sanitizeText(v, 500),
+      followUpBody: (v) => sanitizeMultilineText(v, 10000),
+      isAiGenerated: (v) => (typeof v === 'boolean' ? v : undefined)
+    };
+    const updates: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(req.body as Record<string, unknown>)) {
+      if (key in allowed) {
+        const cleaned = allowed[key](value);
+        if (cleaned !== undefined) updates[key] = cleaned;
+      }
+    }
+    if (Object.keys(updates).length === 0) throw new BadRequestError('No valid template fields to update');
     const updated = await EmailTemplate.findOneAndUpdate(
       { _id: req.params.id, organizationId: req.auth!.organizationId },
-      req.body,
+      updates,
       { new: true }
     );
     if (!updated) throw new NotFoundError('Email template not found');

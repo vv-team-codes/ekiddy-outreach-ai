@@ -1,12 +1,13 @@
 import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { inboxReplySchema } from '@ekiddy/shared';
+import { INBOX_FOLDERS, REPLY_CLASSIFICATIONS, inboxReplySchema } from '@ekiddy/shared';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { validateBody } from '../middleware/validate.middleware.js';
 import { Contact, Conversation, Message, SendingAccount } from '../models/index.js';
 import { classifyAndDraftReplyWithAI } from '../services/ai.service.js';
 import { dispatchOutboundEmail } from '../services/email.service.js';
 import { BadRequestError, NotFoundError, ok } from '../utils/errors.js';
+import { sanitizeText } from '../utils/sanitize.js';
 import { recordInboundReply } from './inbox.routes.js';
 
 export const conversationsRouter = Router();
@@ -146,7 +147,7 @@ conversationsRouter.post('/:id/reply', validateBody(inboxReplySchema), async (re
 
 conversationsRouter.post('/:id/notes', async (req, res, next) => {
   try {
-    const text = String(req.body?.text || '').trim();
+    const text = sanitizeText(req.body?.text, 2000);
     if (!text) throw new BadRequestError('Note text is required');
 
     const conversation = await Conversation.findOneAndUpdate(
@@ -183,12 +184,27 @@ conversationsRouter.patch('/:id', async (req, res, next) => {
     });
     if (!conversation) throw new NotFoundError('Conversation not found');
 
-    if (folder) conversation.folder = folder as typeof conversation.folder;
-    if (classification) conversation.classification = classification as typeof conversation.classification;
+    if (folder) {
+      if (!(INBOX_FOLDERS as readonly string[]).includes(folder)) {
+        throw new BadRequestError('Invalid conversation folder');
+      }
+      conversation.folder = folder as typeof conversation.folder;
+    }
+    if (classification) {
+      if (!(REPLY_CLASSIFICATIONS as readonly string[]).includes(classification)) {
+        throw new BadRequestError('Invalid conversation classification');
+      }
+      conversation.classification = classification as typeof conversation.classification;
+    }
     await conversation.save();
 
     if (leadStage && conversation.contactId) {
-      await Contact.findByIdAndUpdate(conversation.contactId, { stage: leadStage });
+      const allowedStages = ['new', 'contacted', 'replied', 'interested', 'meeting_booked', 'unsubscribed'];
+      if (!allowedStages.includes(leadStage)) throw new BadRequestError('Invalid lead stage');
+      await Contact.findOneAndUpdate(
+        { _id: conversation.contactId, organizationId: req.auth!.organizationId },
+        { stage: leadStage }
+      );
     }
 
     ok(res, conversation);
