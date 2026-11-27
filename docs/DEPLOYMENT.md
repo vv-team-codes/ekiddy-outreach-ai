@@ -1,4 +1,4 @@
-# Ekiddy Outreach AI — Production Deployment & Backup Guide
+# ekiddy Outreach AI — Production Deployment & Backup Guide
 
 ## 1. Prerequisites
 - Linux VPS (Ubuntu 22.04+ / Debian 12+) with Docker Engine & Docker Compose plugin.

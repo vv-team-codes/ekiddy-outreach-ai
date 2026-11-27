@@ -1,4 +1,4 @@
-# Ekiddy Outreach AI — External Integrations Guide
+# ekiddy Outreach AI — External Integrations Guide
 
 Every external integration follows a strict contract:
 1. Encrypted credential storage at rest (`AES-256-GCM`).

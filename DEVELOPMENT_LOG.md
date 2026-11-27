@@ -1,7 +1,7 @@
-# Ekiddy Outreach AI — Development Log
+# ekiddy Outreach AI — Development Log
 
 ## 2026-11-27 — Phase 1: Repository Inspection & Architecture Planning
-- Inspected workspace (`c:\Users\iyapp\OneDrive - ELCOT\vv\EKIDDY OUTREACH AI`); verified greenfield directory and host runtimes (`node v24.13.0`, `npm 11.6.2`, `pnpm 11.5.1`, `git`).
+- Inspected workspace; verified greenfield directory and host runtimes (`node v24.13.0`, `npm 11.6.2`, `pnpm 11.5.1`, `git`).
 - Researched publicly observable Explee workflows (website-first onboarding, natural-language prospecting, autonomous personalized email outreach, AI reply classification, calendar handoff, and pay-as-you-go credit economics).
 - Initialized Git repository on `main` and authored `PROJECT_PLAN.md`, `ARCHITECTURE.md`, `DATABASE_SCHEMA.md`, `API_DOCUMENTATION.md`, `INTEGRATIONS.md`, `README.md`, `.env.example`, and `.gitignore`.
 

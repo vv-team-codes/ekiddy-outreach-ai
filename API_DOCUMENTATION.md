@@ -1,4 +1,4 @@
-# Ekiddy Outreach AI — REST API Documentation
+# ekiddy Outreach AI — REST API Documentation
 
 Base URL: `/api`  
 Content-Type: `application/json`  

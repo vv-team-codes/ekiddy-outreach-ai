@@ -1,4 +1,4 @@
-# Ekiddy Outreach AI
+# ekiddy Outreach AI
 
 An independent, full-stack AI-powered B2B sales intelligence, prospecting, email outreach automation, AI reply management, meeting scheduling, and analytics SaaS platform.
 
@@ -19,13 +19,13 @@ An independent, full-stack AI-powered B2B sales intelligence, prospecting, email
 
 ## Documentation Index
 
-- [Project Plan & Roadmap](file:///c:/Users/iyapp/OneDrive%20-%20ELCOT/vv/EKIDDY%20OUTREACH%20AI/PROJECT_PLAN.md)
-- [Technical Architecture](file:///c:/Users/iyapp/OneDrive%20-%20ELCOT/vv/EKIDDY%20OUTREACH%20AI/ARCHITECTURE.md)
-- [Database Schema](file:///c:/Users/iyapp/OneDrive%20-%20ELCOT/vv/EKIDDY%20OUTREACH%20AI/DATABASE_SCHEMA.md)
-- [API Documentation](file:///c:/Users/iyapp/OneDrive%20-%20ELCOT/vv/EKIDDY%20OUTREACH%20AI/API_DOCUMENTATION.md)
-- [External Integrations](file:///c:/Users/iyapp/OneDrive%20-%20ELCOT/vv/EKIDDY%20OUTREACH%20AI/INTEGRATIONS.md)
-- [Development Log](file:///c:/Users/iyapp/OneDrive%20-%20ELCOT/vv/EKIDDY%20OUTREACH%20AI/DEVELOPMENT_LOG.md)
-- [Deployment & Backup Guide](file:///c:/Users/iyapp/OneDrive%20-%20ELCOT/vv/EKIDDY%20OUTREACH%20AI/docs/DEPLOYMENT.md)
+- [Project Plan & Roadmap](PROJECT_PLAN.md)
+- [Technical Architecture](ARCHITECTURE.md)
+- [Database Schema](DATABASE_SCHEMA.md)
+- [API Documentation](API_DOCUMENTATION.md)
+- [External Integrations](INTEGRATIONS.md)
+- [Development Log](DEVELOPMENT_LOG.md)
+- [Deployment & Backup Guide](docs/DEPLOYMENT.md)
 
 ---
 
@@ -51,4 +51,4 @@ An independent, full-stack AI-powered B2B sales intelligence, prospecting, email
 
 ## Docker Production Deployment (`app.ekiddy.com`)
 
-See [docs/DEPLOYMENT.md](file:///c:/Users/iyapp/OneDrive%20-%20ELCOT/vv/EKIDDY%20OUTREACH%20AI/docs/DEPLOYMENT.md) for `docker-compose.yml` and Caddy HTTPS setup.
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for `docker-compose.yml` and Caddy HTTPS setup.

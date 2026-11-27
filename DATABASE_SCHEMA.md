@@ -1,4 +1,4 @@
-# Ekiddy Outreach AI — Database Schema Specification (MongoDB / Mongoose)
+# ekiddy Outreach AI — Database Schema Specification (MongoDB / Mongoose)
 
 All tenant-owned collections include `organizationId: ObjectId` (indexed) and Mongoose `timestamps: true` (`createdAt`, `updatedAt`).
 

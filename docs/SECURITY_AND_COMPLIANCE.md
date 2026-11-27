@@ -1,4 +1,4 @@
-# Ekiddy Outreach AI — Security, Privacy & Compliance Architecture
+# ekiddy Outreach AI — Security, Privacy & Compliance Architecture
 
 ## 1. Tenant Isolation & Role-Based Access Control (RBAC)
 - Every business document (`Project`, `CompanyResearch`, `Competitor`, `ICP`, `Company`, `Contact`, `LeadList`, `EmailTemplate`, `EmailSequence`, `Campaign`, `SendingAccount`, `EmailEvent`, `Conversation`, `Message`, `Meeting`, `CreditTransaction`, `Subscription`, `Integration`, `Notification`, `AuditLog`, `SuppressionRecord`, `BackgroundJob`) carries an indexed `organizationId`.

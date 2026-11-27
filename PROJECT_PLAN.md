@@ -1,8 +1,8 @@
-# Ekiddy Outreach AI — Project Plan & Development Roadmap
+# ekiddy Outreach AI — Project Plan & Development Roadmap
 
 ## 1. Product Overview
 
-**Ekiddy Outreach AI** is a full-stack B2B sales intelligence, prospecting, AI email outreach, reply management, meeting booking, and analytics SaaS platform inspired by the publicly observable workflows of Explee (`https://explee.com/`).
+**ekiddy Outreach AI** is a full-stack B2B sales intelligence, prospecting, AI email outreach, reply management, meeting booking, and analytics SaaS platform inspired by the publicly observable workflows of Explee (`https://explee.com/`).
 
 A business owner enters their company website URL and the platform orchestrates a connected end-to-end revenue workflow:
 
@@ -21,7 +21,7 @@ A business owner enters their company website URL and the platform orchestrates 
 
 ## 2. Repository Discovery & Baseline State
 
-- **Initial Workspace State**: Empty directory (`c:\Users\iyapp\OneDrive - ELCOT\vv\EKIDDY OUTREACH AI`). No pre-existing source code, packages, or databases were present.
+- **Initial Workspace State**: Empty directory. No pre-existing source code, packages, or databases were present.
 - **Runtime Environment**: Windows (`win32 x64`), Node.js `v24.13.0`, npm `11.6.2`, pnpm `11.5.1`, Git installed. Docker, `mongod`, and `redis-server` are not pre-installed globally on the host, so local development supports embedded `mongodb-memory-server` and an in-process BullMQ-compatible queue fallback when `MONGODB_URI` / `REDIS_URL` are unset, while production and Docker Compose use MongoDB, Redis + BullMQ workers, and Caddy.
 
 ---

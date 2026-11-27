@@ -1,4 +1,4 @@
-# Ekiddy Outreach AI — Technical Architecture
+# ekiddy Outreach AI — Technical Architecture
 
 ## 1. High-Level System Architecture
 
@@ -24,7 +24,7 @@ flowchart LR
 ## 2. Monorepo Directory Structure
 
 ```text
-EKIDDY OUTREACH AI/
+ekiddy OUTREACH AI/
 ├── shared/                     # @ekiddy/shared: Zod schemas, TS interfaces, credit catalog, constants
 ├── backend/                    # Express REST API, Mongoose models, BullMQ workers, service integrations
 │   ├── src/
