@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { UserRole } from '@ekiddy/shared';
+import { signOutFirebase } from '@/lib/firebase';
 
 export interface UserSummary {
   id: string;
@@ -99,14 +100,18 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           organization: state.organization ? { ...state.organization, creditBalance: balance } : null
         })),
-      clearSession: () =>
+      clearSession: () => {
+        // Clearing the app session also signs out of Firebase, so a stale
+        // Firebase session can never silently re-authenticate the user.
+        void signOutFirebase();
         set({
           token: null,
           user: null,
           organization: null,
           organizations: [],
           role: 'owner'
-        }),
+        });
+      },
       toggleTheme: () =>
         set((state) => {
           const next = state.theme === 'light' ? 'dark' : 'light';
