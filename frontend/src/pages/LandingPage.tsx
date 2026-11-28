@@ -68,7 +68,7 @@ export function LandingPage() {
   const [selectedPresetIdx, setSelectedPresetIdx] = useState(0);
   const [monthlyProspects, setMonthlyProspects] = useState(250);
   const navigate = useNavigate();
-  const { token, theme, toggleTheme, setPendingWebsiteUrl } = useAppStore();
+  const { theme, toggleTheme, setPendingWebsiteUrl } = useAppStore();
 
   const activePreview = useMemo(() => {
     const clean = websiteInput.trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
@@ -97,7 +97,7 @@ export function LandingPage() {
     if (websiteInput.trim()) {
       setPendingWebsiteUrl(websiteInput.trim());
     }
-    navigate(token ? '/app/onboarding' : '/register');
+    navigate('/app/onboarding');
   };
 
   return (
@@ -135,22 +135,9 @@ export function LandingPage() {
             >
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
-            {token ? (
-              <Link to="/app">
-                <Button size="sm">Open Workspace</Button>
-              </Link>
-            ) : (
-              <>
-                <Link to="/login">
-                  <Button variant="ghost" size="sm">
-                    Sign In
-                  </Button>
-                </Link>
-                <Link to="/register">
-                  <Button size="sm">Start Free</Button>
-                </Link>
-              </>
-            )}
+            <Link to="/app">
+              <Button size="sm">Open Workspace</Button>
+            </Link>
           </div>
         </div>
       </header>
@@ -635,7 +622,7 @@ export function LandingPage() {
                     ))}
                   </ul>
                 </div>
-                <Link to="/register" className="mt-6 block">
+                <Link to="/app/onboarding" className="mt-6 block">
                   <Button variant={featured ? 'secondary' : 'outline'} className="w-full" size="sm">
                     Get Started
                   </Button>

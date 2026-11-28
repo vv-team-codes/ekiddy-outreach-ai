@@ -33,8 +33,10 @@ export const isFirebaseConfigured = Boolean(
   firebaseConfig.apiKey && firebaseConfig.authDomain && firebaseConfig.projectId && firebaseConfig.appId
 );
 
-export const firebaseApp: FirebaseApp = initializeApp(firebaseConfig);
-export const auth: Auth = getAuth(firebaseApp);
+export const firebaseApp: FirebaseApp | null = isFirebaseConfigured
+  ? initializeApp(firebaseConfig)
+  : null;
+export const auth: Auth | null = firebaseApp ? getAuth(firebaseApp) : null;
 
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
@@ -52,6 +54,7 @@ googleProvider.setCustomParameters({ prompt: 'select_account' });
  * redirect is not supported in this environment.
  */
 export async function signInWithGoogle(): Promise<UserCredential | null> {
+  if (!auth) throw new Error('Firebase authentication is not configured');
   try {
     await signInWithRedirect(auth, googleProvider);
     return null;
@@ -66,29 +69,35 @@ export async function signInWithGoogle(): Promise<UserCredential | null> {
 
 /** Picks up a Google sign-in that completed via redirect after a page reload. */
 export async function getGoogleRedirectResult(): Promise<UserCredential | null> {
+  if (!auth) return null;
   return getRedirectResult(auth);
 }
 
 export async function signUpWithEmail(email: string, password: string): Promise<UserCredential> {
+  if (!auth) throw new Error('Firebase authentication is not configured');
   return createUserWithEmailAndPassword(auth, email, password);
 }
 
 export async function signInWithEmail(email: string, password: string): Promise<UserCredential> {
+  if (!auth) throw new Error('Firebase authentication is not configured');
   return signInWithEmailAndPassword(auth, email, password);
 }
 
 export async function sendResetEmail(email: string): Promise<void> {
+  if (!auth) throw new Error('Firebase authentication is not configured');
   await sendPasswordResetEmail(auth, email);
 }
 
 /** Verifies a Firebase reset code (oobCode), then sets the new password. */
 export async function confirmReset(oobCode: string, newPassword: string): Promise<void> {
+  if (!auth) throw new Error('Firebase authentication is not configured');
   await verifyPasswordResetCode(auth, oobCode);
   await confirmPasswordReset(auth, oobCode, newPassword);
 }
 
 /** Checks a Firebase reset code and returns the email it is issued for. */
 export async function verifyResetCode(oobCode: string): Promise<string> {
+  if (!auth) throw new Error('Firebase authentication is not configured');
   return verifyPasswordResetCode(auth, oobCode);
 }
 
@@ -97,6 +106,7 @@ export async function sendVerificationEmail(user: User): Promise<void> {
 }
 
 export async function signOutFirebase(): Promise<void> {
+  if (!auth) return;
   try {
     await signOut(auth);
   } catch {

@@ -463,3 +463,46 @@ authRouter.post(
     }
   }
 );
+
+authRouter.post('/guest', authRateLimit(30), async (req, res, next) => {
+  try {
+    const rawUrl = typeof req.body?.websiteUrl === 'string' ? req.body.websiteUrl.trim() : '';
+    const websiteUrl = /^https?:\/\//i.test(rawUrl) ? rawUrl : rawUrl ? `https://${rawUrl}` : undefined;
+    const guestId = uuidv4().slice(0, 8);
+    const fullName =
+      typeof req.body?.fullName === 'string' && req.body.fullName.trim().length >= 2
+        ? req.body.fullName.trim()
+        : 'Workspace Owner';
+    const organizationName =
+      typeof req.body?.organizationName === 'string' && req.body.organizationName.trim().length >= 2
+        ? req.body.organizationName.trim()
+        : 'ekiddy Workspace';
+
+    const user = await User.create({
+      fullName,
+      email: `guest-${guestId}@guest.ekiddy.local`,
+      emailVerified: true
+    });
+
+    const { organization } = await provisionWorkspaceForUser({
+      user,
+      fullName,
+      organizationName,
+      websiteUrl
+    });
+
+    const token = signAccessToken({ userId: user._id.toString(), email: user.email });
+
+    res.status(201).json({
+      success: true,
+      data: {
+        token,
+        user: shapeUser(user),
+        organization,
+        organizations: [{ organization, role: 'owner' }]
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+});

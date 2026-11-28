@@ -25,7 +25,7 @@ function decodeJwtExpiry(token: string): number | null {
 
 async function refreshBackendSessionIfExpiring(): Promise<void> {
   const { token, user } = useAppStore.getState();
-  const firebaseUser = auth.currentUser;
+  const firebaseUser = auth?.currentUser;
   if (!token || !user || !firebaseUser) return;
   const expiresAt = decodeJwtExpiry(token);
   if (expiresAt === null) return; // Expiry unreadable — leave the session alone.
@@ -40,12 +40,14 @@ async function refreshBackendSessionIfExpiring(): Promise<void> {
 }
 
 try {
-  onAuthStateChanged(auth, () => {
-    void refreshBackendSessionIfExpiring();
-  });
-  setInterval(() => {
-    void refreshBackendSessionIfExpiring();
-  }, 60 * 60 * 1000);
+  if (auth) {
+    onAuthStateChanged(auth, () => {
+      void refreshBackendSessionIfExpiring();
+    });
+    setInterval(() => {
+      void refreshBackendSessionIfExpiring();
+    }, 60 * 60 * 1000);
+  }
 } catch {
   // Firebase not configured yet (no build-time env vars): the app must
   // still boot and the password-login fallback keeps working.

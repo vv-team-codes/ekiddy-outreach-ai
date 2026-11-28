@@ -52,12 +52,20 @@ describe('ekiddy Outreach AI — Full Platform Integration & Security Suite (18 
     orgAId = resA.body.data.organization._id;
     orgABookingSlug = resA.body.data.organization.bookingSlug;
 
-    // Verify email using devVerificationToken
-    const verifyRes = await request(app).post('/api/auth/verify-email').send({
-      token: resA.body.data.devVerificationToken
+    // Raw verification token must never be returned in API response
+    expect(resA.body.data.devVerificationToken).toBeUndefined();
+    const invalidVerifyRes = await request(app).post('/api/auth/verify-email').send({
+      token: 'invalid-verification-token'
     });
-    expect(verifyRes.status).toBe(200);
-    expect(verifyRes.body.data.verified).toBe(true);
+    expect(invalidVerifyRes.status).toBe(400);
+
+    // Guest session endpoint provisions an isolated workspace with zero login form
+    const guestRes = await request(app).post('/api/auth/guest').send({
+      websiteUrl: 'https://example.com'
+    });
+    expect(guestRes.status).toBe(201);
+    expect(guestRes.body.data.token).toBeTruthy();
+    expect(guestRes.body.data.organization.creditBalance).toBe(500);
 
     // Register Org B for tenant isolation checks
     const resB = await request(app).post('/api/auth/register').send({

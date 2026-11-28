@@ -12,10 +12,10 @@ import {
   Compass,
   CreditCard,
   FolderKanban,
+  Home,
   Inbox,
   LayoutDashboard,
   ListChecks,
-  LogOut,
   Mail,
   Menu,
   Moon,
@@ -97,13 +97,13 @@ export function AppShell() {
 
   const {
     user,
+    token,
     organization,
     organizations,
     theme,
     sidebarCollapsed,
     toggleTheme,
     toggleSidebar,
-    clearSession,
     setOrganization,
     updateCreditBalance
   } = useAppStore();
@@ -135,16 +135,6 @@ export function AppShell() {
   });
 
   const unreadCount = notifications.filter((n) => !n.read).length;
-
-  const handleLogout = async () => {
-    try {
-      await apiRequest('/api/auth/logout', { method: 'POST' });
-    } catch {
-      // ignore
-    }
-    clearSession();
-    navigate('/login');
-  };
 
   const SidebarContent = (
     <div className="flex h-full flex-col">
@@ -214,28 +204,30 @@ export function AppShell() {
           <div className="flex items-center justify-between gap-2 rounded-lg bg-stone-50 p-2 dark:bg-slate-900">
             <div className="min-w-0">
               <p className="truncate text-xs font-semibold text-slate-900 dark:text-slate-100">
-                {user?.fullName}
+                {user?.fullName || 'Workspace Owner'}
               </p>
-              <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">{user?.email}</p>
+              <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
+                {token === 'static-demo-token' ? 'Static Preview Mode' : organization?.name || 'Active Workspace'}
+              </p>
             </div>
-            <button
-              type="button"
-              onClick={handleLogout}
-              aria-label="Log out"
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-white hover:text-rose-600 dark:hover:bg-slate-800"
+            <Link
+              to="/"
+              aria-label="Go to home page"
+              title="Go to Home Page"
+              className="rounded-lg p-1.5 text-slate-500 hover:bg-white hover:text-blue-700 dark:hover:bg-slate-800"
             >
-              <LogOut className="h-4 w-4" />
-            </button>
+              <Home className="h-4 w-4" />
+            </Link>
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={handleLogout}
-            aria-label="Log out"
-            className="flex w-full justify-center rounded-lg p-1.5 text-slate-400 hover:bg-stone-100 hover:text-rose-600 dark:hover:bg-slate-800"
+          <Link
+            to="/"
+            aria-label="Go to home page"
+            title="Go to Home Page"
+            className="flex w-full justify-center rounded-lg p-1.5 text-slate-500 hover:bg-stone-100 hover:text-blue-700 dark:hover:bg-slate-800"
           >
-            <LogOut className="h-4 w-4" />
-          </button>
+            <Home className="h-4 w-4" />
+          </Link>
         )}
       </div>
     </div>

@@ -1,10 +1,9 @@
+import { handleStaticDemoApi, isStaticOnlyHost } from '@/lib/staticDemoApi';
 import { useAppStore } from '@/stores/appStore';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
-// True only when a backend base URL is configured (VITE_API_URL). GitHub
-// Pages is static-only, so with no backend configured no /api/* request
-// can succeed — callers must use the Firebase-only path instead.
+// True only when a backend base URL is configured (VITE_API_URL).
 export const isBackendConfigured = Boolean(import.meta.env.VITE_API_URL);
 
 export class ApiClientError extends Error {
@@ -24,6 +23,11 @@ export async function apiRequest<T>(
   path: string,
   options: RequestInit & { skipAuth?: boolean } = {}
 ): Promise<T> {
+  if (isStaticOnlyHost()) {
+    const res = await handleStaticDemoApi<T>(path, options);
+    return res.data;
+  }
+
   const { token, organization } = useAppStore.getState();
   const headers = new Headers(options.headers || {});
 
@@ -76,6 +80,10 @@ export async function apiRequestWithMeta<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<{ data: T; meta?: Record<string, unknown> }> {
+  if (isStaticOnlyHost()) {
+    return handleStaticDemoApi<T>(path, options);
+  }
+
   const { token, organization } = useAppStore.getState();
   const headers = new Headers(options.headers || {});
   if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');

@@ -432,7 +432,7 @@ export function RegisterPage() {
 
   const onResendVerification = async () => {
     setResendNote('');
-    const currentUser = auth.currentUser;
+    const currentUser = auth?.currentUser;
     if (!currentUser) {
       setResendNote('Please sign in first, then request a new verification email.');
       return;

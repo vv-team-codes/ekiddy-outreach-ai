@@ -1,10 +1,12 @@
-import React from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppShell } from '@/components/layout/AppShell';
-import { ToastContainer } from '@/components/ui';
+import { PageSkeleton, ToastContainer } from '@/components/ui';
+import { apiRequest } from '@/lib/api';
+import { getSiteBasePath } from '@/lib/siteBase';
+import { initStaticDemoSession, isStaticOnlyHost } from '@/lib/staticDemoApi';
 import { AnalyticsPage } from '@/pages/AnalyticsPage';
-import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage } from '@/pages/AuthPages';
 import { AutopilotPage } from '@/pages/AutopilotPage';
 import { BillingPage } from '@/pages/BillingPage';
 import { CampaignsPage } from '@/pages/CampaignsPage';
@@ -22,8 +24,7 @@ import { OnboardingPage } from '@/pages/OnboardingPage';
 import { PeoplePage } from '@/pages/PeoplePage';
 import { SendingAccountsPage } from '@/pages/SendingAccountsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
-import { useAppStore } from '@/stores/appStore';
-import { getSiteBasePath } from '@/lib/siteBase';
+import { useAppStore, type OrganizationSummary, type UserSummary } from '@/stores/appStore';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,74 +35,91 @@ const queryClient = new QueryClient({
   }
 });
 
-function RequireAuth({ children }: { children: React.ReactNode }) {
-  const token = useAppStore((s) => s.token);
-  if (!token) {
-    return <Navigate to="/login" replace />;
+function EnsureWorkspaceSession({ children }: { children: React.ReactNode }) {
+  const { token, pendingWebsiteUrl, setSession } = useAppStore();
+  const [initializing, setInitializing] = useState(!token);
+
+  useEffect(() => {
+    let active = true;
+    if (token) {
+      setInitializing(false);
+      return;
+    }
+
+    const bootstrapWorkspace = async () => {
+      if (isStaticOnlyHost()) {
+        initStaticDemoSession(pendingWebsiteUrl || undefined);
+        if (active) setInitializing(false);
+        return;
+      }
+      try {
+        const res = await apiRequest<{
+          token: string;
+          user: UserSummary;
+          organization: OrganizationSummary | null;
+          organizations: Array<{ organization: OrganizationSummary; role: 'owner' | 'admin' | 'member' | 'viewer' }>;
+        }>('/api/auth/guest', {
+          method: 'POST',
+          skipAuth: true,
+          body: JSON.stringify({
+            websiteUrl: pendingWebsiteUrl || undefined
+          })
+        });
+        if (!active) return;
+        setSession({
+          token: res.token,
+          user: res.user,
+          organization: res.organization,
+          organizations: res.organizations,
+          role: res.organizations?.[0]?.role || 'owner'
+        });
+      } catch {
+        // Fallback cleanly to local workspace mode if backend is unreachable
+        if (active) {
+          initStaticDemoSession(pendingWebsiteUrl || undefined);
+        }
+      } finally {
+        if (active) setInitializing(false);
+      }
+    };
+
+    void bootstrapWorkspace();
+    return () => {
+      active = false;
+    };
+  }, [token, pendingWebsiteUrl, setSession]);
+
+  if (initializing && !token) {
+    return (
+      <div className="mx-auto max-w-5xl p-8">
+        <PageSkeleton />
+      </div>
+    );
   }
+
   return <>{children}</>;
 }
 
-// Sign-in gate for the landing page (user rule): a signed-out visitor may
-// look at the page, but no action button works without an account — their
-// work must auto-save to an account so it is still there when they return.
-// Allowed without an account: the theme toggle, in-page anchor links, the
-// logo, the Sign In / Start Free links, and the website form (its submit
-// handler saves the typed website and routes to sign-up). Every other
-// button or control sends the visitor to /login instead of acting.
-function LandingGate({ children }: { children: React.ReactNode }) {
-  const token = useAppStore((s) => s.token);
-  const navigate = useNavigate();
-  if (token) {
-    return <>{children}</>;
-  }
-  return (
-    <div
-      onClickCapture={(e) => {
-        const el = (e.target as HTMLElement).closest('a,button,input,select,textarea');
-        if (!el) return;
-        if (el.getAttribute('aria-label') === 'Toggle theme') return;
-        if (el.closest('form')) return;
-        const href = el.getAttribute('href');
-        if (href === '/login' || href === '/register' || href === '/' || (href && href.startsWith('#'))) return;
-        e.preventDefault();
-        e.stopPropagation();
-        navigate('/login');
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
 export function App() {
-  // Served at BOTH the GitHub Pages project path (/ekiddy-outreach-ai/)
-  // and a domain root (app.ekiddy.com): the basename follows the live URL.
   const routerBasename = getSiteBasePath() || '/';
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter basename={routerBasename}>
         <Routes>
-          <Route
-            path="/"
-            element={
-              <LandingGate>
-                <LandingPage />
-              </LandingGate>
-            }
-          />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/" element={<LandingPage />} />
+          {/* Auth routes removed per user request; redirect directly to home page */}
+          <Route path="/login" element={<Navigate to="/" replace />} />
+          <Route path="/register" element={<Navigate to="/" replace />} />
+          <Route path="/forgot-password" element={<Navigate to="/" replace />} />
+          <Route path="/reset-password" element={<Navigate to="/" replace />} />
           <Route path="/book/:slug" element={<PublicBookingPage />} />
 
           <Route
             path="/app"
             element={
-              <RequireAuth>
+              <EnsureWorkspaceSession>
                 <AppShell />
-              </RequireAuth>
+              </EnsureWorkspaceSession>
             }
           >
             <Route index element={<DashboardPage />} />
